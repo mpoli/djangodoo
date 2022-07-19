@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db import models as djangomodels
 from django.utils import translation
 from django.utils.functional import lazy
-from django.utils import six
+import six
 import base64
 
 """
