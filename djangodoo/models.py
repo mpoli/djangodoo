@@ -164,7 +164,7 @@ class OdooModel(models.Model):
 
 
 class OdooUser(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, blank=False, related_name='odoo_user')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, blank=False, related_name='odoo_user', on_delete=models.CASCADE)
 
     def __init__(self, *args, **kwargs):
         config = getattr(settings, "ODOO_HOST", False)
