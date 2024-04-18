@@ -16,8 +16,6 @@ VERSION = "0.3.0"
 
 def set_auth_cache():
     settings.CACHES = settings.CACHES or {}
-    settings.CACHES["odoo_auth"] = {'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-                                    'LOCATION': '127.0.0.1:18069'}
 
 
 def set_odoo_client():
