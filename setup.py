@@ -37,7 +37,7 @@ setup(
     install_requires=[
         "Django>=1.7.2",
         "ERPpeek>=1.6",
-        "python-memcached"
+        "pymemcache==4.*"
     ],
     keywords=['Odoo', 'OpenERP', 'Django', ],
 )
