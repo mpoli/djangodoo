@@ -126,7 +126,7 @@ def add_extra_model_fields(sender, **kwargs):
             return
 
         settings.odoo_models[sender._odoo_model] = sender
-        _all_fields = odoo.model(sender._odoo_model).fields(sender._get_odoo_fields())
+        _all_fields = odoo.env[sender._odoo_model].fields(sender._get_odoo_fields())
         for fname, fdetails in _all_fields.items():
             fdetails['name'] = fname
             fdetails['model'] = sender._odoo_model
