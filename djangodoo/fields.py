@@ -262,5 +262,10 @@ class One2ManyField(OdooField):
 def convert_field(details):
     if not(details['type'] in FIELDS_CONV):
         return None
-#    return eval(details["type"].title() + "Field")(details)
-    return eval(FIELDS_CONV[details["type"]])(details)
+    # FIXME: Ugly hack
+    if details["type"] == "datetime" or details["type"] == "Datetime":
+        return eval(DateTimeField)(details)
+    return eval(details["type"].title() + "Field")(details)
+    # Something like this should be a great improvement
+    # return eval(FIELDS_CONV[details["type"]])(details)
+s
