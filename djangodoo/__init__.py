@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models.signals import class_prepared
 from django.core.mail import send_mail
 
-import erppeek
+import odooly
 from .fields import convert_field
 import logging
 
@@ -32,7 +32,7 @@ def set_odoo_client():
 
     def _connect(retry_cnt):
         try:
-            settings.odoo = erppeek.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
+            settings.odoo = odooly.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
                                            user=config['USER'], password=config['PASSWORD'], verbose=False)
             settings.odoo.context = {"lang": settings.LANGUAGE_CODE}
             settings.odoo_models = {}

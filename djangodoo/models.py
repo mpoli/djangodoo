@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.db import models
 from django.core.cache import caches
-import erppeek
+import odooly
 
 # TODO: traduction des DATA!!!
 # TODO: lazy loading des objets many2one
@@ -170,5 +170,5 @@ class OdooUser(models.Model):
         config = getattr(settings, "ODOO_HOST", False)
         super(OdooUser, self).__init__(*args, **kwargs)
         passwd = kwargs.get('password') or caches["odoo_auth"].get('%s_credentials' % self.user.username)
-        self.odoo_client = erppeek.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
+        self.odoo_client = odooly.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
                                           user=self.user.username, password=passwd, verbose=False)
