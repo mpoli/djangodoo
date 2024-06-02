@@ -196,6 +196,7 @@ class Many2OneField(OdooField):
             return None
 
     def to_django(self, **kwargs):
+        kwargs['on_delete'] = "models.CASCADE"
         kwargs["null"] = not(self.details.get("required"))
         if self.details['relation'] == self.details['model']:
             kwargs["to"] = "self"
