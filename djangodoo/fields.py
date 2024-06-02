@@ -264,7 +264,7 @@ def convert_field(details):
         return None
     # FIXME: Ugly hack
     if details["type"] == "datetime" or details["type"] == "Datetime":
-        return eval(DateTimeField)(details)
+        return eval("DateTimeField")(details)
     return eval(details["type"].title() + "Field")(details)
     # Something like this should be a great improvement
     # return eval(FIELDS_CONV[details["type"]])(details)
