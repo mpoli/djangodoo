@@ -119,7 +119,7 @@ class OdooModel(models.Model):
             if "_" in res:
                 res = res[:3] + res[3:].upper()
             return res
-        trans_fields = settings.odoo.execute(cls._odoo_model, 'fields_get', [], context={"lang": convert_lang(lang)})
+        trans_fields = settings.odoo.env.execute(cls._odoo_model, 'fields_get', [], context={"lang": convert_lang(lang)})
         for field in cls._meta.fields:
             if hasattr(field, "odoo_field") and trans_fields.get(field.name):
                 field.odoo_field.translation_cache[lang] = trans_fields[field.name]
