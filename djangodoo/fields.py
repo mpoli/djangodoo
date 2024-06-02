@@ -268,4 +268,3 @@ def convert_field(details):
     return eval(details["type"].title() + "Field")(details)
     # Something like this should be a great improvement
     # return eval(FIELDS_CONV[details["type"]])(details)
-s
