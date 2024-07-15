@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-import erppeek
+import odooly
 from .models import OdooUser
 from django.core.cache import caches
 from django.db import transaction
@@ -15,7 +15,7 @@ class OdooAuthBackend(object):
     def authenticate(self, username=None, password=None):
         config = getattr(settings, "ODOO_HOST", False)
         try:
-            odoo_client = erppeek.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
+            odoo_client = odooly.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
                                          user=username, password=password, verbose=False)
         except:
             return None

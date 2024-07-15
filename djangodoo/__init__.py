@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.db.models.signals import class_prepared
 from django.core.mail import send_mail
-import erppeek
+import odooly
 from .fields import convert_field
 import logging
 
@@ -10,24 +10,30 @@ from time import sleep
 import traceback
 
 logger = logging.getLogger(__name__)
-
+VERSION = "0.3.0"
 
 def set_auth_cache():
     settings.CACHES = settings.CACHES or {}
-    settings.CACHES["odoo_auth"] = {'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-                                    'LOCATION': '127.0.0.1:18069'}
+    settings.CACHES["odoo_auth"] = {'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+                                    'LOCATION': '127.0.0.1:11211'}
 
 
 def set_odoo_client():
     config = getattr(settings, "ODOO_HOST", False)
 
-    logger.info("Setting up the Odoo client...")
+    if not config:
+        raise RuntimeError("You need to define ODOO_HOST in your settings in order to use Djangodoo.")
+    elif not config.get("HOST", None):
+        raise RuntimeError("You need to provide a HOST location in ODOO_HOST in order to use Djangodoo.")
+
+    logger.info("Setting up the Odoo client (djangodoo version {})...".format(VERSION))
+
     max_retry_attempts = getattr(settings, "ODOO_MAX_RETRY_ATTEMPTS", 3)
     retry_delay = getattr(settings, "ODOO_RETRY_DELAY", 5)
 
     def _connect(retry_cnt):
         try:
-            settings.odoo = erppeek.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
+            settings.odoo = odooly.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
                                            user=config['USER'], password=config['PASSWORD'], verbose=False)
             settings.odoo.context = {"lang": settings.LANGUAGE_CODE}
             settings.odoo_models = {}
@@ -100,16 +106,35 @@ def add_extra_model_fields(sender, **kwargs):
 
         The fields are "translated" by using the definitions in fields
     """
+    odoo = getattr(settings, "odoo", None)
+
     def add_field(django_model, field_details):
         odoo_field = convert_field(field_details)
+        print(f"--> DETAIL_TYPE -> {(field_details['type'])}")
+        print(f"--> ODOO_FIELD -> {odoo_field}")
         if odoo_field:
             field = odoo_field.to_django()
+            print(f"--> FIELD -> {field}")
             field.contribute_to_class(django_model, field_details['name'])
 
     odoo = settings.odoo
     if getattr(sender, "_odoo_model", False):
+        # This means we are dealing with an OdooModel
+        if not odoo:
+            # This means set_odoo_client() failed to establish the connexion.
+            # There is no point in proceeding any further as this would raise
+            # an exception that will block the entire application.
+            # TODO handle the case properly instead of bypassing the model generation
+            host = getattr(settings, "ODOO_HOST", False).get("HOST", None)
+            err_msg = """The model named {} could not be processed by Djangodoo because the Odoo server at {} could 
+            not be reached.""".format(
+                sender.__name__, host)
+            logger.error(err_msg)
+            return
+
         settings.odoo_models[sender._odoo_model] = sender
-        _all_fields = odoo.model(sender._odoo_model).fields(sender._get_odoo_fields())
+        _all_fields = odoo.env[sender._odoo_model].fields(sender._get_odoo_fields())
+        print(f"--> ALL_FIELDS -> {_all_fields.items()}")
         for fname, fdetails in _all_fields.items():
             fdetails['name'] = fname
             fdetails['model'] = sender._odoo_model

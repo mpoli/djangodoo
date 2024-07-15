@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from django.conf import settings
 from django.db import models
 from django.core.cache import caches
-import erppeek
+import odooly
 
 # TODO: traduction des DATA!!!
 # TODO: lazy loading des objets many2one
@@ -33,14 +35,14 @@ class OdooModel(models.Model):
 
     @classmethod
     def _get_odoo_fields(cls):
-        res = cls._odoo_fields or settings.odoo.model(cls._odoo_model).fields()
+        res = cls._odoo_fields or settings.odoo.env[cls._odoo_model].fields()
         return [f for f in res if not(f in (cls._odoo_ignore_fields or []))]
 
     @classmethod
     def odoo_get_all_ids(cls, client=None):
         odoo_model = cls._odoo_model
         client = client or settings.odoo
-        ans = client.model(odoo_model).keys()
+        ans = client.env[odoo_model].keys()
         return ans
 
     @classmethod
@@ -66,7 +68,7 @@ class OdooModel(models.Model):
         odoo_model = cls._odoo_model
         odoo_fields = cls._get_odoo_fields()
         client = client or settings.odoo
-        records = client.model(odoo_model).read(odoo_ids, fields=odoo_fields, context=None)
+        records = client.env[odoo_model].read(odoo_ids, fields=odoo_fields, context=None)
         res = []
         for rec in records:
             args = {}
@@ -106,7 +108,7 @@ class OdooModel(models.Model):
         client = client or settings.odoo
         odoo_model = cls._odoo_model
         odoo_ids = [o.odoo_id for o in objs if o.odoo_id]
-        return client.model(odoo_model).write(odoo_ids, convert(args))
+        return client.env[odoo_model].write(odoo_ids, convert(args))
 
     @classmethod
     def cache_translation(cls, lang):
@@ -119,7 +121,7 @@ class OdooModel(models.Model):
             if "_" in res:
                 res = res[:3] + res[3:].upper()
             return res
-        trans_fields = settings.odoo.execute(cls._odoo_model, 'fields_get', [], context={"lang": convert_lang(lang)})
+        trans_fields = settings.odoo.env.execute(cls._odoo_model, 'fields_get', [], context={"lang": convert_lang(lang)})
         for field in cls._meta.fields:
             if hasattr(field, "odoo_field") and trans_fields.get(field.name):
                 field.odoo_field.translation_cache[lang] = trans_fields[field.name]
@@ -127,6 +129,7 @@ class OdooModel(models.Model):
     def _convert_to_push(self, fieldnames=None):
         res = {}
         fieldnames = fieldnames or type(self)._get_odoo_fields()
+        logging.info(f"FIELDS - {fieldnames}")
         for field in type(self)._meta.fields:
             if hasattr(field, "odoo_field") and field.name in fieldnames:
                 res[field.name] = field.odoo_field.convert_back(getattr(self, field.name))
@@ -144,11 +147,12 @@ class OdooModel(models.Model):
         odoo_model = type(self)._odoo_model
         client = client or settings.odoo
         args = self._convert_to_push(fieldnames)
+        logging.info(f"ARGS - {args}")
         if self.odoo_id:
-            client.model(odoo_model).write([self.odoo_id], args)
+            client.env[odoo_model].write([self.odoo_id], args)
             return self.odoo_id
         else:
-            return client.model(odoo_model).create(args)
+            return client.env[odoo_model].create(args)
 
 #     def __getattr__(self, name):
 #         """Redefine getattr in order to translate translatable fields
@@ -170,5 +174,5 @@ class OdooUser(models.Model):
         config = getattr(settings, "ODOO_HOST", False)
         super(OdooUser, self).__init__(*args, **kwargs)
         passwd = kwargs.get('password') or caches["odoo_auth"].get('%s_credentials' % self.user.username)
-        self.odoo_client = erppeek.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
+        self.odoo_client = odooly.Client("%s:%d" % (config['HOST'], config['PORT']), db=config['DB'],
                                           user=self.user.username, password=passwd, verbose=False)

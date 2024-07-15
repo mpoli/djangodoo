@@ -30,6 +30,7 @@ def field_translate(field, key):
         res = six.text_type(res)
     return res
 
+
 _ = lazy(field_translate, six.text_type)
 
 
@@ -82,8 +83,8 @@ class OdooField(object):
         kwargs.update({
             "verbose_name": _(self, 'string'),
             "help_text": _(self, 'help'),
-            "blank": not(self.details.get("required")),
-            "editable": not(self.details.get("readonly")),
+            "blank": not (self.details.get("required")),
+            "editable": not (self.details.get("readonly")),
         })
         django_field = getattr(djangomodels, FIELDS_CONV[self.details["type"]])(**kwargs)
         django_field.odoo_field = self
@@ -102,7 +103,7 @@ class TextField(OdooField):
     def to_django(self, **kwargs):
         if self.details.get("required"):
             kwargs["default"] = ""
-        kwargs["null"] = not(self.details.get("required"))
+        kwargs["null"] = not (self.details.get("required"))
         return super(TextField, self).to_django(**kwargs)
 
 
@@ -128,7 +129,7 @@ class IntegerField(OdooField):
     def to_django(self, **kwargs):
         if self.details.get("required"):
             kwargs["default"] = 0
-        kwargs["null"] = not(self.details.get("required"))
+        kwargs["null"] = not (self.details.get("required"))
         return super(IntegerField, self).to_django(**kwargs)
 
 
@@ -138,14 +139,14 @@ class FloatField(IntegerField):
         if self.details.get("digits"):
             kwargs["max_digits"] = self.details["digits"][0]
             kwargs["decimal_places"] = self.details["digits"][1]
-        kwargs["null"] = not(self.details.get("required"))
+        kwargs["null"] = not (self.details.get("required"))
         return super(FloatField, self).to_django(**kwargs)
 
 
 class DateField(OdooField):
 
     def to_django(self, **kwargs):
-        kwargs["null"] = not(self.details.get("required"))
+        kwargs["null"] = not (self.details.get("required"))
         if self.details.get("required"):
             kwargs["auto_now_add"] = True
         return super(DateField, self).to_django(**kwargs)
@@ -162,7 +163,7 @@ class TimeField(DateField):
 class BinaryField(OdooField):
 
     def to_django(self, **kwargs):
-        kwargs["null"] = not(self.details.get("required"))
+        kwargs["null"] = not (self.details.get("required"))
         return super(BinaryField, self).to_django(**kwargs)
 
     def convert_data(self, data):
@@ -181,7 +182,6 @@ class SelectionField(CharField):
 
 
 class Many2OneField(OdooField):
-
     """
         If the model identified by details['relation'] exists in django, then we can create the field directly.
         Otherwise, we delay the field creation until the possible creation of this model.
@@ -196,7 +196,8 @@ class Many2OneField(OdooField):
             return None
 
     def to_django(self, **kwargs):
-        kwargs["null"] = not(self.details.get("required"))
+        kwargs['on_delete'] = djangomodels.CASCADE
+        kwargs["null"] = not (self.details.get("required"))
         if self.details['relation'] == self.details['model']:
             kwargs["to"] = "self"
         else:
@@ -234,23 +235,23 @@ class Many2OneField(OdooField):
         from .models import OdooModel
         if data and isinstance(data, OdooModel) and hasattr(data, 'odoo_id'):
             return data.odoo_id
-#         elif isinstance(data, (int, long)):
-#             return data
+        #         elif isinstance(data, (int, long)):
+        #             return data
         else:
             return False
 
 
 class One2ManyField(OdooField):
-
     """
         There is no one2many field in Django, so we simply set the "relation_field"
         attribute of the foreignKey field encoding the opposite relationship so it bares
         the name of this one2many field
     """
+
     def __new__(cls, details):
         if details['relation'] in settings.odoo_models:
             relation = settings.odoo_models[details['relation']]
-            for field in relation._meta.Fields:
+            for field in relation._meta.fields:
                 if field.name == details['relation_field']:
                     field.related_name = details['name']
         else:
@@ -259,6 +260,12 @@ class One2ManyField(OdooField):
 
 
 def convert_field(details):
-    if not(details['type'] in FIELDS_CONV):
+    if not (details['type'] in FIELDS_CONV):
         return None
-    return eval(details["type"].title() + "Field")(details)
+
+    try:
+        return eval(details["type"].title() + "Field")(details)
+    except:
+        title = FIELDS_CONV[details["type"]]
+        print(f"--> CONVERT_TYPE -> 2 ({details["type"]} - {title})")
+        return eval(title)(details) if title else None
