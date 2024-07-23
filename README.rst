@@ -64,4 +64,13 @@ OdooModel
 .. Authentication
 .. --------------
 
+Release Note
+-----------
 
+This version has some modifications compared to the original, such as the use of Odooly and corrections to some problems.
+
+
+Technical debts
+-----------
+
+When trying to use the library, even after some corrections, it still has some problems with one2many fields (When generating the inverse, if there is more than one reference to the same table), poorly formatted decimal fields, among others.
